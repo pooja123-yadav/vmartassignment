@@ -58,8 +58,8 @@ class RefreshToken(models.Model):
     is_active   = models.BooleanField(default=True)
     token       = models.CharField(max_length=200, db_index=True)
     expiry_time = models.DateTimeField()
-    created     = models.DateTimeField()
-    updated     = models.DateTimeField()
+    created     = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated     = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return "%s, %s, %s" % (self.user_id, self.is_active, self.token)
@@ -68,6 +68,7 @@ class RefreshToken(models.Model):
         self.expiry_time = date_time_utils.add_days_to_datetime(
             date_time_utils.get_current_datetime(),
             settings.REFRESH_TOKEN_TIMEOUT)
+        super(RefreshToken, self).save(*args, **kwargs)
 
     class Meta:
         db_table = 'refresh_token'

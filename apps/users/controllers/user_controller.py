@@ -6,41 +6,38 @@ from apps.users.serializer import UserSerializer
 from apps.users import utils as user_utils
 from django.db import transaction
 from utils import date_time_utils
+from utils.responses import RESPONSES, raise_error
     
 
 # Create a User
 def create_user(**kwargs):
-    try:
-        raw_password = kwargs.get('password')
+   
+    raw_password = kwargs.get('password')
 
-        del kwargs['password']
-        del kwargs['confirm_password']
+    del kwargs['password']
+    del kwargs['confirm_password']
 
-        company_filter = {"id":kwargs.get('company_id')}
+    company_filter = {"id":kwargs.get('company_id')}
 
-        get_company  = company_db.get_company_detail(**company_filter)
-        if not get_company:
-            raise ValidationError("Company not found")
+    get_company  = company_db.get_company_detail(**company_filter)
+    if not get_company:
+        raise_error(RESPONSES.USER.ERRORS.COMPANY_DOES_NOT_EXIST)
 
-        user_serializer = UserSerializer(data=kwargs)
+    user_serializer = UserSerializer(data=kwargs)
 
-        if user_serializer.is_valid():
-            with transaction.atomic():
-                user_serializer.save()
-                user_password = {
-                    "user_id": user_serializer.data['id'],
-                    "password_hash": make_password(raw_password)  # using the raw_password here
-                }
-                user_db.save_user_password(**user_password)
+    if user_serializer.is_valid():
+        with transaction.atomic():
+            user_serializer.save()
+            user_password = {
+                "user_id": user_serializer.data['id'],
+                "password_hash": make_password(raw_password)  # using the raw_password here
+            }
+            user_db.save_user_password(**user_password)
 
-        else:
-            raise ValidationError(user_serializer.errors)
+    else:
+        raise_error(RESPONSES.ERRORS.VALIDATIONS.ADD_USER_VALIDATION_FAILED, message=user_serializer.errors)
 
-        return user_serializer.data
-
-    except Exception as e:
-        # Handle the exception here, you can log it or raise a custom error
-        raise ValidationError(str(e))
+    return user_serializer.data
 
 
 # Update User Profile
@@ -50,12 +47,14 @@ def update_user(**body):
     user = user_db.get_user(**filters)
 
     if not user:
-        raise ValidationError("User does not exist")
+        raise_error(RESPONSES.USER.ERRORS.DOES_NOT_EXIST)
 
     user_serializer = UserSerializer(user, data=body, partial=True)
 
     if user_serializer.is_valid():
         user_serializer.save()
+    else:
+        raise_error(RESPONSES.ERRORS.VALIDATIONS.ADD_USER_VALIDATION_FAILED, message=user_serializer.errors)
         
     return user_serializer.data
 
@@ -65,7 +64,7 @@ def get_user_detail(**user):
     user = user_db.get_user(**filters)
 
     if not user:
-        raise ValidationError("User does not exist")
+        raise_error(RESPONSES.USER.ERRORS.DOES_NOT_EXIST)
     
     user_details = UserSerializer(user).data
     return user_details
@@ -78,14 +77,14 @@ def login_user(**kwargs):
     user = user_db.get_user(**user_filter)
 
     if not user:
-        raise ValidationError("Wrong Email Entered")
+        raise_error(RESPONSES.USER.ERRORS.INVALID_USER_EMAIL)
     
     user_password_filters = {"user_id": user.id}
    
     get_password = user_db.get_user_password(**user_password_filters)
    
     if not get_password:
-        raise ValidationError("No password found")
+        raise_error(RESPONSES.USER.ERRORS.INVALID_USER_PASSWORD)
     
     # check password validation
     password = kwargs.get("password")
@@ -99,7 +98,7 @@ def login_user(**kwargs):
                 "refresh_token": refresh_token
             }
     else:
-        raise ValidationError("Invalid Password")
+        raise_error(RESPONSES.USER.ERRORS.INVALID_USER_PASSWORD)
     
     return response
 
@@ -109,13 +108,13 @@ def refresh_access_token(refresh_token):
     user_id = user_db.get_user_id_from_refresh_token(refresh_token=refresh_token)
 
     if not user_id:
-        raise ValidationError("Invalid Refresh Token")
+        raise_error(RESPONSES.ERRORS.VALIDATIONS.INVALID_REFRESH_TOKEN)
 
     filters = {"id": user_id}
     user = user_db.get_user(**filters)
 
     if not user:
-        raise ValidationError("User does not exist")
+        raise_error(RESPONSES.USER.ERRORS.DOES_NOT_EXIST)
 
     jwt_token = user_utils.create_jwt_token(user=user)
 
