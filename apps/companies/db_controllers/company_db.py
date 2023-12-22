@@ -8,3 +8,6 @@ def get_list():
 def get_list_with_detail():
     list = Company.objects.all()
     return list
+
+def get_company_detail(**filters):
+    return Company.objects.filter(**filters)
