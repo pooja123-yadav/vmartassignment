@@ -50,6 +50,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'middlewares.jwt_authentication.JWTAuthMiddleware',
 ]
 
 ROOT_URLCONF = 'vmartassignment.urls'
@@ -130,3 +131,7 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+JWT_SECRET_KEY          = "9143bd59-a005-4ec4-bd6c-800c994b0d1a"
+JWT_EXPIRY_DURATION     = 5 #in minutes
+REFRESH_TOKEN_TIMEOUT   = 365 #days
